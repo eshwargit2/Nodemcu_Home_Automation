@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LED Relay Control with Particles</title>
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #0a0a0a;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        #particles-js {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: -1;
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #21262d 100%);
+        }
+
+        .container {
+            background: rgba(13, 17, 23, 0.95);
+            backdrop-filter: blur(12px);
+            border-radius: 20px;
+            padding: 35px;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.7),
+                0 0 0 1px rgba(255, 255, 255, 0.05),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            animation: containerSlide 0.8s ease-out;
+            max-width: 650px;
+            width: 100%;
+            position: relative;
+            z-index: 10;
+        }
+
+        @keyframes containerSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-40px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        h1 {
+            text-align: center;
+            background: linear-gradient(45deg, #ff4757, #5352ed, #3742fa, #2ed573);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 2.6rem;
+            margin-bottom: 35px;
+            font-weight: bold;
+            animation: titleGradient 4s ease-in-out infinite;
+            text-shadow: 0 0 30px rgba(255, 71, 87, 0.3);
+        }
+
+        @keyframes titleGradient {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .relay-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 25px;
+            margin-bottom: 35px;
+        }
+
+        .relay-card {
+            background: rgba(22, 27, 34, 0.8);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .relay-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #ff4757, transparent);
+            transform: translateX(-100%);
+            animation: cardScan 3s linear infinite;
+        }
+
+        @keyframes cardScan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .relay-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .led-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin: 0 auto 15px;
+            position: relative;
+            transition: all 0.4s ease;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .led-indicator::before {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 6px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .led-indicator.on {
+            background: radial-gradient(circle, #2ed573, #20bf6b);
+            box-shadow: 
+                inset 0 2px 4px rgba(0, 0, 0, 0.3),
+                0 0 15px rgba(46, 213, 115, 0.6),
+                0 0 30px rgba(46, 213, 115, 0.3);
+            animation: ledPulse 2s ease-in-out infinite;
+        }
+
+        .led-indicator.off {
+            background: radial-gradient(circle, #ff4757, #ff3838);
+            box-shadow: 
+                inset 0 2px 4px rgba(0, 0, 0, 0.3),
+                0 0 10px rgba(255, 71, 87, 0.4);
+        }
+
+        .led-indicator.loading {
+            background: radial-gradient(circle, #ffa502, #ff6348);
+            box-shadow: 
+                inset 0 2px 4px rgba(0, 0, 0, 0.3),
+                0 0 15px rgba(255, 165, 2, 0.5);
+            animation: ledBlink 0.8s ease-in-out infinite;
+        }
+
+        @keyframes ledPulse {
+            0%, 100% { 
+                box-shadow: 
+                    inset 0 2px 4px rgba(0, 0, 0, 0.3),
+                    0 0 15px rgba(46, 213, 115, 0.6),
+                    0 0 30px rgba(46, 213, 115, 0.3);
+            }
+            50% { 
+                box-shadow: 
+                    inset 0 2px 4px rgba(0, 0, 0, 0.3),
+                    0 0 25px rgba(46, 213, 115, 0.8),
+                    0 0 50px rgba(46, 213, 115, 0.5);
+            }
+        }
+
+        @keyframes ledBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .relay-button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(45deg, #2c3e50, #34495e);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        .relay-button::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.3s ease;
+        }
+
+        .relay-button:hover::after {
+            width: 200px;
+            height: 200px;
+        }
+
+        .relay-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .relay-button:active {
+            transform: translateY(0);
+            transition: all 0.1s ease;
+        }
+
+        .relay-button.on {
+            background: linear-gradient(45deg, #2ed573, #20bf6b);
+            box-shadow: 0 4px 15px rgba(46, 213, 115, 0.3);
+        }
+
+        .relay-button.off {
+            background: linear-gradient(45deg, #ff4757, #ff3838);
+            box-shadow: 0 4px 15px rgba(255, 71, 87, 0.3);
+        }
+
+        .relay-button.loading {
+            background: linear-gradient(45deg, #ffa502, #ff6348);
+            box-shadow: 0 4px 15px rgba(255, 165, 2, 0.3);
+        }
+
+        .relay-label {
+            color: #ffffff;
+            font-size: 0.9rem;
+            text-align: center;
+            margin-bottom: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .status-panel {
+            background: rgba(22, 27, 34, 0.9);
+            border-radius: 16px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            animation: panelFade 1s ease-out 0.4s both;
+            position: relative;
+        }
+
+        .status-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #2ed573, transparent);
+            animation: statusScan 4s linear infinite;
+        }
+
+        @keyframes statusScan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        @keyframes panelFade {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .status-title {
+            background: linear-gradient(45deg, #2ed573, #3742fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+        }
+
+        .status-item {
+            background: rgba(33, 38, 45, 0.8);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+        }
+
+        .status-item.on {
+            border-color: #2ed573;
+            box-shadow: 0 0 15px rgba(46, 213, 115, 0.2);
+            background: rgba(46, 213, 115, 0.05);
+        }
+
+        .status-item.off {
+            border-color: #ff4757;
+            box-shadow: 0 0 10px rgba(255, 71, 87, 0.1);
+            background: rgba(255, 71, 87, 0.05);
+        }
+
+        .status-led {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin: 0 auto 8px;
+            transition: all 0.3s ease;
+        }
+
+        .status-led.on {
+            background: #2ed573;
+            box-shadow: 0 0 10px rgba(46, 213, 115, 0.6);
+            animation: statusLedPulse 2s ease-in-out infinite;
+        }
+
+        .status-led.off {
+            background: #ff4757;
+            box-shadow: 0 0 5px rgba(255, 71, 87, 0.4);
+        }
+
+        @keyframes statusLedPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .status-label {
+            color: #ffffff;
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-value {
+            color: #ffffff;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .loading-spinner {
+            display: none;
+            width: 24px;
+            height: 24px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border-top-color: #2ed573;
+            animation: spin 1s linear infinite;
+            margin: 15px auto 0;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            transform: translateX(350px);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 1000;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 280px;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: linear-gradient(45deg, #2ed573, #20bf6b);
+            border-color: #2ed573;
+        }
+
+        .notification.error {
+            background: linear-gradient(45deg, #ff4757, #ff3838);
+            border-color: #ff4757;
+        }
+
+        /* Mobile Optimizations */
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+
+            .container {
+                padding: 25px;
+            }
+            
+            h1 {
+                font-size: 2.2rem;
+                margin-bottom: 25px;
+            }
+            
+            .relay-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 20px;
+            }
+
+            .relay-card {
+                padding: 15px;
+            }
+
+            .led-indicator {
+                width: 16px;
+                height: 16px;
+                margin-bottom: 12px;
+            }
+
+            .relay-button {
+                padding: 12px;
+                font-size: 0.9rem;
+            }
+
+            .status-panel {
+                padding: 20px;
+            }
+
+            .notification {
+                top: 15px;
+                right: 15px;
+                padding: 12px 20px;
+                font-size: 0.9rem;
+                max-width: 250px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+
+            h1 {
+                font-size: 1.9rem;
+            }
+
+            .relay-grid {
+                gap: 15px;
+            }
+
+            .relay-card {
+                padding: 12px;
+            }
+
+            .led-indicator {
+                width: 14px;
+                height: 14px;
+            }
+
+            .status-grid {
+                gap: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="particles-js"></div>
+    
+    <div class="container">
+        <h1>4-Channel Relay Control</h1>
+        
+        <div class="relay-grid">
+            <div class="relay-card">
+                <div class="led-indicator off" id="led1"></div>
+                <div class="relay-label">Relay 1</div>
+                <button class="relay-button off" id="relay1" onclick="toggleRelay(1)">
+                    Control
+                </button>
+            </div>
+            <div class="relay-card">
+                <div class="led-indicator off" id="led2"></div>
+                <div class="relay-label">Relay 2</div>
+                <button class="relay-button off" id="relay2" onclick="toggleRelay(2)">
+                    Control
+                </button>
+            </div>
+            <div class="relay-card">
+                <div class="led-indicator off" id="led3"></div>
+                <div class="relay-label">Relay 3</div>
+                <button class="relay-button off" id="relay3" onclick="toggleRelay(3)">
+                    Control
+                </button>
+            </div>
+            <div class="relay-card">
+                <div class="led-indicator off" id="led4"></div>
+                <div class="relay-label">Relay 4</div>
+                <button class="relay-button off" id="relay4" onclick="toggleRelay(4)">
+                    Control
+                </button>
+            </div>
+        </div>
+
+        <div class="status-panel">
+            <h3 class="status-title">System Status</h3>
+            <div class="status-grid" id="statusGrid">
+                <div class="status-item off" id="status1">
+                    <div class="status-led off" id="statusLed1"></div>
+                    <div class="status-label">Relay 1</div>
+                    <div class="status-value">OFF</div>
+                </div>
+                <div class="status-item off" id="status2">
+                    <div class="status-led off" id="statusLed2"></div>
+                    <div class="status-label">Relay 2</div>
+                    <div class="status-value">OFF</div>
+                </div>
+                <div class="status-item off" id="status3">
+                    <div class="status-led off" id="statusLed3"></div>
+                    <div class="status-label">Relay 3</div>
+                    <div class="status-value">OFF</div>
+                </div>
+                <div class="status-item off" id="status4">
+                    <div class="status-led off" id="statusLed4"></div>
+                    <div class="status-label">Relay 4</div>
+                    <div class="status-value">OFF</div>
+                </div>
+            </div>
+            <div class="loading-spinner" id="loadingSpinner"></div>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // Subtle particles.js configuration
+        const isMobile = window.innerWidth <= 768;
+        
+        particlesJS('particles-js', {
+            particles: {
+                number: {
+                    value: isMobile ? 25 : 40,
+                    density: {
+                        enable: true,
+                        value_area: 1200
+                    }
+                },
+                color: {
+                    value: ['#ff4757', '#2ed573', '#3742fa', '#ffa502']
+                },
+                shape: {
+                    type: 'circle'
+                },
+                opacity: {
+                    value: 0.3,
+                    random: true,
+                    anim: {
+                        enable: true,
+                        speed: 0.5,
+                        opacity_min: 0.1,
+                        sync: false
+                    }
+                },
+                size: {
+                    value: 2,
+                    random: true,
+                    anim: {
+                        enable: true,
+                        speed: 1,
+                        size_min: 0.5,
+                        sync: false
+                    }
+                },
+                line_linked: {
+                    enable: true,
+                    distance: 120,
+                    color: '#ffffff',
+                    opacity: 0.1,
+                    width: 1
+                },
+                move: {
+                    enable: true,
+                    speed: 1,
+                    direction: 'none',
+                    random: true,
+                    straight: false,
+                    out_mode: 'out',
+                    bounce: false,
+                    attract: {
+                        enable: false
+                    }
+                }
+            },
+            interactivity: {
+                detect_on: 'canvas',
+                events: {
+                    onhover: {
+                        enable: !isMobile,
+                        mode: 'grab'
+                    },
+                    onclick: {
+                        enable: false
+                    },
+                    resize: true
+                },
+                modes: {
+                    grab: {
+                        distance: 80,
+                        line_linked: {
+                            opacity: 0.3
+                        }
+                    }
+                }
+            },
+            retina_detect: true
+        });
+
+        let relayStates = {1: false, 2: false, 3: false, 4: false};
+
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        function setButtonLoading(channel, loading) {
+            const button = document.getElementById(`relay${channel}`);
+            const led = document.getElementById(`led${channel}`);
+            
+            if (loading) {
+                button.classList.add('loading');
+                button.classList.remove('on', 'off');
+                led.classList.add('loading');
+                led.classList.remove('on', 'off');
+            } else {
+                button.classList.remove('loading');
+                led.classList.remove('loading');
+            }
+        }
+
+        function updateButtonState(channel, isOn) {
+            const button = document.getElementById(`relay${channel}`);
+            const led = document.getElementById(`led${channel}`);
+            const statusItem = document.getElementById(`status${channel}`);
+            const statusLed = document.getElementById(`statusLed${channel}`);
+            const statusValue = statusItem.querySelector('.status-value');
+            
+            if (isOn) {
+                button.classList.add('on');
+                button.classList.remove('off');
+                led.classList.add('on');
+                led.classList.remove('off');
+                statusItem.classList.add('on');
+                statusItem.classList.remove('off');
+                statusLed.classList.add('on');
+                statusLed.classList.remove('off');
+                statusValue.textContent = 'ON';
+            } else {
+                button.classList.add('off');
+                button.classList.remove('on');
+                led.classList.add('off');
+                led.classList.remove('on');
+                statusItem.classList.add('off');
+                statusItem.classList.remove('on');
+                statusLed.classList.add('off');
+                statusLed.classList.remove('on');
+                statusValue.textContent = 'OFF';
+            }
+        }
+
+        function toggleRelay(channel) {
+            setButtonLoading(channel, true);
+            
+            fetch(`/toggle/${channel}`)
+                .then(res => {
+                    if (!res.ok) throw new Error('Network response was not ok');
+                    return res.text();
+                })
+                .then(data => {
+                    setButtonLoading(channel, false);
+                    relayStates[channel] = !relayStates[channel];
+                    updateButtonState(channel, relayStates[channel]);
+                    showNotification(data, 'success');
+                    updateStatus();
+                })
+                .catch(error => {
+                    setButtonLoading(channel, false);
+                    showNotification('Error: ' + error.message, 'error');
+                    console.error('Error:', error);
+                });
+        }
+
+        function updateStatus() {
+            const spinner = document.getElementById('loadingSpinner');
+            spinner.style.display = 'block';
+            
+            fetch('/status')
+                .then(res => {
+                    if (!res.ok) throw new Error('Failed to fetch status');
+                    return res.json();
+                })
+                .then(status => {
+                    spinner.style.display = 'none';
+                    
+                    // Update relay states and UI
+                    for (let channel = 1; channel <= 4; channel++) {
+                        const isOn = status[channel] || status[`relay${channel}`] || false;
+                        relayStates[channel] = isOn;
+                        updateButtonState(channel, isOn);
+                    }
+                })
+                .catch(error => {
+                    spinner.style.display = 'none';
+                    showNotification('Failed to update status', 'error');
+                    console.error('Status update error:', error);
+                });
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStatus();
+            
+            // Auto-refresh status every 5 seconds
+            setInterval(updateStatus, 5000);
+        });
+
+        // Add keyboard shortcuts (desktop only)
+        if (!isMobile) {
+            document.addEventListener('keydown', function(e) {
+                if (e.key >= '1' && e.key <= '4') {
+                    const channel = parseInt(e.key);
+                    toggleRelay(channel);
+                }
+            });
+        }
+    </script>
+</body>
+</html>
