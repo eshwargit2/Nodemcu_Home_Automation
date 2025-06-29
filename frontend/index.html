@@ -743,7 +743,7 @@
                 .then(status => {
                     spinner.style.display = 'none';
                     
-                    /
+                    
                     for (let channel = 1; channel <= 4; channel++) {
                         const isOn = status[channel] || status[`relay${channel}`] || false;
                         relayStates[channel] = isOn;
@@ -765,7 +765,7 @@
             setInterval(updateStatus, 5000);
         });
 
-        // Add keyboard shortcuts (desktop only)
+        
         if (!isMobile) {
             document.addEventListener('keydown', function(e) {
                 if (e.key >= '1' && e.key <= '4') {
