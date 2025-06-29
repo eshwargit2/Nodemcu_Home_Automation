@@ -743,7 +743,7 @@
                 .then(status => {
                     spinner.style.display = 'none';
                     
-                    // Update relay states and UI
+                    /
                     for (let channel = 1; channel <= 4; channel++) {
                         const isOn = status[channel] || status[`relay${channel}`] || false;
                         relayStates[channel] = isOn;
@@ -757,11 +757,11 @@
                 });
         }
 
-        // Initialize on page load
+        
         document.addEventListener('DOMContentLoaded', function() {
             updateStatus();
             
-            // Auto-refresh status every 5 seconds
+            
             setInterval(updateStatus, 5000);
         });
 
